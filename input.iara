@@ -1,0 +1,30 @@
+program
+
+
+	shared x, y, z;	
+
+	coroutine C1( b:int, b:float)
+	begin
+		op;
+		op;
+		op;	
+		start C2(x, b);
+		stop C1;
+		cancel c3;
+		resume c5;
+		active c4;
+
+
+
+
+	
+	end
+
+     coroutine C2()
+	begin
+
+
+	end
+
+
+end program
