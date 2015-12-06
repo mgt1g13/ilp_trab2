@@ -70,7 +70,8 @@ def parse_decl_start(result):
 		
 		argument = _argument.strip()
 		if( not ' ' in argument):
-			ret_args.append(argument)
+			if(argument != ''):
+				ret_args.append(argument)
 		else:
 			return None
 	return (name, ret_args)
@@ -87,7 +88,7 @@ def parse_decl_shared(result):
 		
 		argument = _argument.strip()
 		if( not ' ' in argument):
-			ret_args.append(argument)
+				ret_args.append(argument)
 		else:
 			return None
 	return ret_args
@@ -100,7 +101,7 @@ i = 0
 # print str(f.readlines())
 for _line in f.readlines():
 	i += 1
-	print(_line)
+	#print(_line)
 	line = _line[:len(_line)-1].strip()
 	#print(line)
 	if(in_program == False):
@@ -147,25 +148,25 @@ for _line in f.readlines():
 
 			result = re.search(regex_stop, line)
 			if(exact_match(result, line)):
-				(name) = result.groups()
+				(name,) = result.groups()
 				coroutines_activation[current_coroutine].add_instruction(["stop", name])
 				continue
 
 			result = re.search(regex_resume, line)
 			if(exact_match(result, line)):
-				(name) = result.groups()
+				(name,) = result.groups()
 				coroutines_activation[current_coroutine].add_instruction(["resume", name])
 				continue
 
 			result = re.search(regex_active, line)
 			if(exact_match(result, line)):
-				(name) = result.groups()
+				(name,) = result.groups()
 				coroutines_activation[current_coroutine].add_instruction(["active", name])
 				continue
 
 			result = re.search(regex_cancel, line)
 			if(exact_match(result, line)):
-				(name) = result.groups()
+				(name,) = result.groups()
 				coroutines_activation[current_coroutine].add_instruction(["cancel", name])
 				continue
 
@@ -209,6 +210,150 @@ for _line in f.readlines():
 	if(in_program == True and out_progam == True):
 		if(line != ""):
 			exit(0)
+
+
+print "Sintaxe -> Ok! "
+
+
+
+################################################################################################
+
+if("main" in coroutines_activation.keys()):
+	corrotina_atual = coroutines_activation["main"]
+else:
+	print "Erro -> corrotina main indefinida"
+	quit()
+
+
+
+corrotinas_ativas = ["main"]
+corrotinas_pausadas = []
+
+#copiando
+corrotinas_nao_iniciadas = coroutines_activation.keys()[:]
+corrotinas_nao_iniciadas.remove("main")
+
+print corrotinas_nao_iniciadas
+
+maxIt = 5
+remaining_it = maxIt
+
+while len(corrotinas_ativas) != 0:
+
+	if(corrotina_atual.counter == len(corrotina_atual.instructions)):
+		corrotinas_ativas = corrotinas_ativas[1:]
+		if(len(corrotinas_ativas) > 0 ):
+			corrotina_atual = coroutines_activation[corrotinas_ativas[0]]
+		remaining_it = maxIt
+		continue
+
+
+	print corrotina_atual.nome
+
+	remaining_it -= 1
+	# print corrotina_atual.instructions
+	line = corrotina_atual.instructions[corrotina_atual.counter]
+	corrotina_atual.counter += 1
+	
+	if line[0] == "start":
+		if(line[1] not in coroutines_activation.keys()):
+			print "Erro de execucao -> corrotina " +  line[1] + " nao definida"
+			quit()
+
+		if len(line[2]) == len(coroutines_activation[line[1]].args):
+			if( line[1] in corrotinas_nao_iniciadas):
+				corrotinas_nao_iniciadas.remove(line[1])
+				corrotinas_ativas.append(line[1])
+				coroutines_activation[line[1]].counter = 0
+			else:
+				print "Erro de execucao -> Tentando iniciar corrotina " +  str(line[1]) + ", mas ela ja foi iniciada"
+				quit()
+		else:
+			print "Erro -> Numero errado de argumentos -> " + str(line[2])
+
+ 	elif line[0] == "active":
+ 		if(line[1] not in coroutines_activation.keys()):
+			print "Erro de execucao -> corrotina " +  str(line[1]) + " nao definida"
+			quit()
+		if(line[1] not in corrotinas_ativas):
+			print "Tentando passar o controle para Corrotina " + str(line[1]) + " mas ela nao esta ativa"
+		corrotinas_ativas.remove(line[1])
+		corrotinas_ativas = [line[1]] + corrotinas_ativas
+		corrotina_atual = coroutines_activation[line[1]]
+		remaining_it = maxIt
+
+	elif line[0] == "resume":
+		if(line[1] not in coroutines_activation.keys()):
+			print "Erro de execucao -> corrotina " +  str(line[1]) + " nao definida"
+			quit()
+		if(line[1] in corrotinas_nao_iniciadas):
+			print "Erro de execucao -> Tentando resumir a corrotina " +  str(line[1]) + ", mas nao esta alocada"
+			quit()
+
+		#Se tentar usar resume em uma que nao esteja pausada, continua
+		if(line[1] in corrotinas_pausadas):
+			corrotinas_pausadas.remove(line[1])
+		if(line[1] not in corrotinas_ativas):
+			corrotinas_ativas.append(line[1])
+
+	elif line[0] == "stop":
+		if(line[1] not in coroutines_activation.keys()):
+			print "Erro de execucao -> corrotina " +  str(line[1]) + " nao definida"
+			quit()
+		if(line[1] in corrotinas_nao_iniciadas):
+			print "Erro de execucao -> Tentando pausar a corrotina " +  str(line[1]) + ", mas nao esta alocada"
+			quit()
+
+		#Se para ela mesmo, troca o controle
+		if(line[1] == corrotina_atual.nome):
+			corrotinas_ativas = corrotinas_ativas[1:]
+			remaining_it = maxIt
+
+			if(len(corrotinas_ativas) != 0):
+				corrotina_atual = coroutines_activation[corrotinas_ativas[0]]
+			else:
+				continue
+
+		#remove da lista de ativas
+		if(line[1] in corrotinas_ativas):
+			corrotinas_ativas.remove(line[1])
+		if(line[1] not in corrotinas_pausadas):
+			corrotinas_pausadas.append(line[1])
+
+	elif line[0] == "cancel":
+		print " ---> " + line[1]
+		if(line[1] not in coroutines_activation.keys()):
+			print "Erro de execucao -> corrotina " +  str(line[1]) + " nao definida"
+			quit()
+
+		#Se para ela mesmo, troca o controle
+		if(line[1] == corrotina_atual.nome):
+			corrotinas_ativas = corrotinas_ativas[1:]
+			remaining_it = maxIt
+
+			if(len(corrotinas_ativas) != 0):
+				corrotina_atual = coroutines_activation[corrotinas_ativas[0]]
+			else:
+				continue
+
+		#Se tentar usar resume em uma que nao esteja pausada, continua
+		if(line[1] in corrotinas_pausadas):
+			corrotinas_pausadas.remove(line[1])
+		if(line[1] in corrotinas_ativas):
+			corrotinas_ativas.remove(line[1])
+
+		corrotinas_nao_iniciadas.append(line[1])
+
+
+
+
+	if(remaining_it == 0):
+		temp = corrotinas_ativas[0]
+		corrotinas_ativas = corrotinas_ativas[1:]
+		corrotinas_ativas.append(temp)
+		corrotina_atual = coroutines_activation[corrotinas_ativas[0]]
+		remaining_it = maxIt
+
 
 
 

@@ -6,13 +6,13 @@ program
 	coroutine C1( b:int, b:float)
 	begin
 		op;
-		op;
-		op;	
-		start C2(x, b);
-		stop C1;
+		start C2();
+		active C2;
+		resume C2;
+		cancel C1;
 		cancel c3;
 		resume c5;
-		active c4;
+		
 
 
 
@@ -22,9 +22,26 @@ program
 
      coroutine C2()
 	begin
+		op;
+		stop C2;
+		op;
+
+	end
+     coroutine main()
+	begin
+		op;
+		op;
+		op;
+		op;
+		start C1(b, c);
+		op;
+		op;
+		start C1(b, c);
+		resume C1;
+		op;
+		op;
 
 
 	end
-
 
 end program
